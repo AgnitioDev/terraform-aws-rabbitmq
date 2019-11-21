@@ -75,5 +75,6 @@ variable "internal_elb" {
 
 variable "tags" {
   type = map
+  default = {}
 }
 

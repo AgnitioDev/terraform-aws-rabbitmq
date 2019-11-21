@@ -297,7 +297,7 @@ module "log" {
       }
     },
   ]
-
+  
   policy = data.aws_iam_policy_document.logs_policy_doc.json
 
   tags = var.tags
