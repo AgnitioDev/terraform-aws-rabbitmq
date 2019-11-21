@@ -106,7 +106,8 @@ resource "aws_security_group" "rabbitmq_elb" {
   }
 
   tags = merge(var.tags, {
-    "Name" = "${var.name}-elb" } )
+    Name = "${var.name}-elb"
+  })
 }
 
 resource "aws_security_group" "rabbitmq_nodes" {
@@ -187,8 +188,7 @@ resource "aws_autoscaling_group" "rabbitmq" {
   vpc_zone_identifier = var.subnet_ids
 
   tags = merge(var.tags, {
-    "Name" = "${var.name}-asg",
-    "propagate_at_launch" = "true"
+    Name = "${var.name}-asg"
   })
 }
 
@@ -241,7 +241,7 @@ resource "aws_elb" "elb" {
   #cross_zone_load_balancing = true
 
   tags = merge(var.tags, {
-    "Name" = "${var.name}-elb"
+    Name = "${var.name}-elb"
   })
 }
 
@@ -297,7 +297,7 @@ module "log" {
       }
     },
   ]
-  
+
   policy = data.aws_iam_policy_document.logs_policy_doc.json
 
   tags = var.tags
