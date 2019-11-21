@@ -196,7 +196,7 @@ resource "aws_autoscaling_group" "asg" {
   }*/
 
   tags = merge(var.tags, {
-    Name = var.name
+    Name = "${local.asg_name}"
   })
 }
 
