@@ -201,7 +201,7 @@ resource "aws_elb" "elb" {
     bucket = local.log_bucket_name
     bucket_prefix = "elb"
     interval = 60
-    enabled = var.enable_s3_logs
+    enabled = var.enable_s3_logging
   }
 
   listener {
@@ -268,7 +268,7 @@ resource "aws_s3_bucket" "log" {
   policy = data.aws_iam_policy_document.logs_policy_doc.json
   force_destroy = true
 
-  count = var.enable_s3_logs ? 1: 0
+  count = var.enable_s3_logging ? 1: 0
 
   lifecycle_rule {
     id = "log"

@@ -64,7 +64,7 @@ variable "rabbit_port" {
   default = "5672"
 }
 
-variable "enable_s3_logs" {
+variable "enable_s3_logging" {
   description = "If true elb will store logs on S3"
   default = false
 }
