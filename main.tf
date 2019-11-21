@@ -188,12 +188,10 @@ resource "aws_autoscaling_group" "rabbitmq" {
   vpc_zone_identifier = var.subnet_ids
 
   tags = merge(var.tags, {
-    "Name" = "${var.name}-asg"
+    key = "Name",
+    value = "${var.name}-asg",
+    propagate_at_launch = true
   })
-
-/*  tags = merge(var.tags, {})
-    Name = "${var.name}-asg"
-  })*/
 }
 
 resource "aws_elb" "elb" {
@@ -268,7 +266,7 @@ module "log" {
   source = "terraform-aws-modules/s3-bucket/aws"
   version = "~> 1.0"
 
-  #create_bucket = var.enable_s3_logs
+  create_bucket = var.enable_s3_logs
   bucket = local.log_bucket_name
   acl = "private"
   force_destroy = true
