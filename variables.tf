@@ -69,11 +69,6 @@ variable "enable_s3_logs" {
   default = "false"
 }
 
-variable "enable_deletion_protection" {
-  description = "If true deletion protection is activated"
-  default = "false"
-}
-
 variable "internal_elb" {
   default = "true"
 }

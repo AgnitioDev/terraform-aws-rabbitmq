@@ -187,8 +187,6 @@ resource "aws_autoscaling_group" "rabbitmq" {
 resource "aws_elb" "elb" {
   name = "${var.name}-elb"
 
-  enable_deletion_protection = var.enable_deletion_protection
-
   access_logs {
     bucket        = local.log_bucket_name
     bucket_prefix = "elb"
