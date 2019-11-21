@@ -2,6 +2,8 @@ locals {
   sync_node_count = 3
   rabbit_internal_port = 5672
   log_bucket_name = "${var.name}-log-${random_uuid.log.result}"
+
+  asg_name = "${var.name}-asg"
 }
 
 data "aws_region" "current" {
@@ -49,7 +51,7 @@ data "template_file" "cloud-init" {
 
   vars = {
     sync_node_count = local.sync_node_count
-    asg_name        = var.name
+    asg_name        = local.asg_name
     region          = data.aws_region.current.name
     admin_password  = random_string.admin_password.result
     rabbit_password = random_string.rabbit_password.result
@@ -64,7 +66,7 @@ resource "aws_iam_role" "role" {
 }
 
 resource "aws_iam_role_policy" "policy" {
-  name = var.name
+  name = "${var.name}-policy"
   role = aws_iam_role.role.id
 
   policy = <<EOF
@@ -88,11 +90,11 @@ EOF
 }
 
 resource "aws_iam_instance_profile" "profile" {
-  name_prefix = var.name
+  name_prefix = "${var.name}-profile"
   role        = aws_iam_role.role.name
 }
 
-resource "aws_security_group" "rabbitmq_elb" {
+resource "aws_security_group" "elb" {
   name = "${var.name}-sg-elb"
   vpc_id = var.vpc_id
   description = "Security Group for the rabbitmq elb"
@@ -127,7 +129,7 @@ resource "aws_security_group" "rabbitmq_nodes" {
     from_port = 5672
     to_port = 5672
     security_groups = [
-      aws_security_group.rabbitmq_elb.id]
+      aws_security_group.elb.id]
   }
 
   ingress {
@@ -135,7 +137,7 @@ resource "aws_security_group" "rabbitmq_nodes" {
     from_port = 15672
     to_port = 15672
     security_groups = [
-      aws_security_group.rabbitmq_elb.id]
+      aws_security_group.elb.id]
   }
 
   egress {
@@ -174,8 +176,8 @@ resource "aws_launch_configuration" "rabbitmq" {
   }
 }
 
-resource "aws_autoscaling_group" "rabbitmq" {
-  name = "${var.name}-asg"
+resource "aws_autoscaling_group" "asg" {
+  name = local.asg_name
   min_size = var.min_size
   desired_capacity = var.desired_size
   max_size = var.max_size
@@ -238,7 +240,7 @@ resource "aws_elb" "elb" {
   idle_timeout = 3600
   internal = var.internal_elb
   security_groups = concat([
-    aws_security_group.rabbitmq_elb.id], var.elb_additional_security_group_ids)
+    aws_security_group.elb.id], var.elb_additional_security_group_ids)
 
   #cross_zone_load_balancing = true
 
@@ -268,7 +270,7 @@ resource "aws_s3_bucket" "log" {
   policy = data.aws_iam_policy_document.logs_policy_doc.json
   force_destroy = true
 
-  count = var.enable_s3_logging ? 1: 0
+  count = var.enable_s3_logging ? 1 : 0
 
   lifecycle_rule {
     id = "log"
