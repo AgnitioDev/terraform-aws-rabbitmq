@@ -264,40 +264,37 @@ data "aws_iam_policy_document" "logs_policy_doc" {
 
 resource "aws_s3_bucket" "log" {
   bucket = local.log_bucket_name
-  acl    = "private"
+  acl = "private"
   policy = data.aws_iam_policy_document.logs_policy_doc.json
   force_destroy = true
 
   count = var.enable_s3_logs == "true" ? 1: 0
 
-  lifecycle_rule = [
-    {
-      id = "log"
-      enabled = true
-      prefix = "log/"
+  lifecycle_rule {
+    id = "log"
+    enabled = true
+    prefix = "log/"
 
-      tags = {
-        rule = "log"
-        autoclean = "true"
-      }
-
-      transition = [
-        {
-          days = 90
-          storage_class = "ONEZONE_IA"
-        },
-        {
-          days = 120
-          storage_class = "GLACIER"
-        }
-      ]
-
-      expiration = {
-        days = 730
-        # 2 YEARS
-      }
+    tags = {
+      rule = "log"
+      autoclean = "true"
     }
-  ]
+
+    transition {
+      days = 90
+      storage_class = "ONEZONE_IA"
+    }
+
+    transition {
+      days = 120
+      storage_class = "GLACIER"
+    }
+
+    expiration {
+      days = 730
+      # 2 YEARS
+    }
+  }
 
   tags = var.tags
 }
