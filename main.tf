@@ -252,37 +252,40 @@ data "aws_iam_policy_document" "logs_policy_doc" {
 }
 
 module "log" {
-  source  = "terraform-aws-modules/s3-bucket/aws"
+  source = "terraform-aws-modules/s3-bucket/aws"
   version = "~> 1.0"
 
-  count         = var.enable_s3_logs ? 1 : 0
-  bucket        = local.log_bucket_name
-  acl           = "private"
+  create_bucket = var.enable_s3_logs
+  bucket = local.log_bucket_name
+  acl = "private"
   force_destroy = true
+  attach_elb_log_delivery_policy = true
 
   lifecycle_rule = [
     {
-      id      = "log"
+      id = "log"
       enabled = true
-      prefix  = "log/"
+      prefix = "log/"
 
       tags = {
-        rule      = "log"
+        rule = "log"
         autoclean = "true"
       }
 
       transition = [
         {
-          days          = 90
+          days = 90
           storage_class = "ONEZONE_IA"
-        }, {
-          days          = 120
+        },
+        {
+          days = 120
           storage_class = "GLACIER"
         }
       ]
 
       expiration = {
-        days = 730 # 2 YEARS
+        days = 730
+        # 2 YEARS
       }
     },
   ]
