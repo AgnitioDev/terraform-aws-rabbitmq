@@ -54,3 +54,27 @@ variable "instance_volume_iops" {
   default = "0"
 }
 
+variable "rabbit_mgtport" {
+  description = "RabbitMQ management port from outside ELB"
+  default = "80"
+}
+
+variable "rabbit_port" {
+  description = "RabbitMQ port from outside ELB"
+  default = "5672"
+}
+
+variable "enable_s3_logs" {
+  description = "If true elb will store logs on S3"
+  default = "false"
+}
+
+variable "enable_deletion_protection" {
+  description = "If true deletion protection is activated"
+  default = "false"
+}
+
+variable "tags" {
+  type = map
+}
+

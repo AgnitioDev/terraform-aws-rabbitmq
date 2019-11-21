@@ -1,5 +1,7 @@
-data "aws_vpc" "vpc" {
-  id = var.vpc_id
+locals {
+  sync_node_count = 3
+  rabbit_internal_port = 5672
+  log_bucket_name = "${var.name}-log-${random_uuid.log.result}"
 }
 
 data "aws_region" "current" {
@@ -14,9 +16,7 @@ data "aws_ami_ids" "ami" {
   }
 }
 
-locals {
-  cluster_name = "rabbitmq-${var.name}"
-}
+resource "random_uuid" "log" { }
 
 resource "random_string" "admin_password" {
   length  = 32
@@ -48,8 +48,8 @@ data "template_file" "cloud-init" {
   template = file("${path.module}/cloud-init.yaml")
 
   vars = {
-    sync_node_count = 3
-    asg_name        = local.cluster_name
+    sync_node_count = local.sync_node_count
+    asg_name        = var.name
     region          = data.aws_region.current.name
     admin_password  = random_string.admin_password.result
     rabbit_password = random_string.rabbit_password.result
@@ -59,12 +59,12 @@ data "template_file" "cloud-init" {
 }
 
 resource "aws_iam_role" "role" {
-  name               = local.cluster_name
+  name               = var.name
   assume_role_policy = data.aws_iam_policy_document.policy_doc.json
 }
 
 resource "aws_iam_role_policy" "policy" {
-  name = local.cluster_name
+  name = var.name
   role = aws_iam_role.role.id
 
   policy = <<EOF
@@ -88,29 +88,29 @@ EOF
 }
 
 resource "aws_iam_instance_profile" "profile" {
-  name_prefix = local.cluster_name
+  name_prefix = var.name
   role        = aws_iam_role.role.name
 }
 
 resource "aws_security_group" "rabbitmq_elb" {
-  name        = "rabbitmq_elb-${var.name}"
-  vpc_id      = var.vpc_id
+  name = "${var.name}-sg-elb"
+  vpc_id = var.vpc_id
   description = "Security Group for the rabbitmq elb"
 
   egress {
-    protocol    = "-1"
-    from_port   = 0
-    to_port     = 0
-    cidr_blocks = ["0.0.0.0/0"]
+    protocol = "-1"
+    from_port = 0
+    to_port = 0
+    cidr_blocks = [
+      "0.0.0.0/0"]
   }
 
-  tags = {
-    Name = "rabbitmq ${var.name} ELB"
-  }
+  tags = merge(var.tags, {
+    Name = "${var.name}-elb" } )
 }
 
 resource "aws_security_group" "rabbitmq_nodes" {
-  name        = "${local.cluster_name}-nodes"
+  name        = "${var.name}-sg-nodes"
   vpc_id      = var.vpc_id
   description = "Security Group for the rabbitmq nodes"
 
@@ -145,13 +145,11 @@ resource "aws_security_group" "rabbitmq_nodes" {
     ]
   }
 
-  tags = {
-    Name = "rabbitmq ${var.name} nodes"
-  }
+  tags = merge(var.tags, { Name = "${var.name}-sg-nodes" })
 }
 
 resource "aws_launch_configuration" "rabbitmq" {
-  name                 = local.cluster_name
+  name                 = "${var.name}-launch-configuration"
   image_id             = data.aws_ami_ids.ami.ids[0]
   instance_type        = var.instance_type
   key_name             = var.ssh_key_name
@@ -172,7 +170,7 @@ resource "aws_launch_configuration" "rabbitmq" {
 }
 
 resource "aws_autoscaling_group" "rabbitmq" {
-  name                      = local.cluster_name
+  name                      = "${var.name}-asg"
   min_size                  = var.min_size
   desired_capacity          = var.desired_size
   max_size                  = var.max_size
@@ -183,27 +181,40 @@ resource "aws_autoscaling_group" "rabbitmq" {
   load_balancers            = [aws_elb.elb.name]
   vpc_zone_identifier       = var.subnet_ids
 
-  tag {
-    key                 = "Name"
-    value               = local.cluster_name
-    propagate_at_launch = true
-  }
+  tags = merge(var.tags, { Name = "${var.name}-asg", propagate_at_launch = "true" })
 }
 
 resource "aws_elb" "elb" {
-  name = "${local.cluster_name}-elb"
+  name = "${var.name}-elb"
+
+  enable_deletion_protection = var.enable_deletion_protection
+
+  access_logs {
+    bucket        = local.log_bucket_name
+    bucket_prefix = "elb"
+    interval      = 60
+    enabled       = var.enable_s3_logs
+  }
 
   listener {
-    instance_port     = 5672
+    instance_port     = local.rabbit_internal_port
     instance_protocol = "tcp"
-    lb_port           = 5672
+    lb_port           = var.rabbit_port
     lb_protocol       = "tcp"
   }
+
+  /*listener {
+    instance_port      = 8000
+    instance_protocol  = "http"
+    lb_port            = 443
+    lb_protocol        = "https"
+    ssl_certificate_id = "arn:aws:iam::123456789012:server-certificate/certName"
+  }*/
 
   listener {
     instance_port     = 15672
     instance_protocol = "http"
-    lb_port           = 80
+    lb_port           = var.rabbit_mgtport
     lb_protocol       = "http"
   }
 
@@ -212,7 +223,7 @@ resource "aws_elb" "elb" {
     unhealthy_threshold = 10
     healthy_threshold   = 2
     timeout             = 3
-    target              = "TCP:5672"
+    target              = "TCP:${local.rabbit_internal_port}"
   }
 
   subnets         = var.subnet_ids
@@ -220,7 +231,63 @@ resource "aws_elb" "elb" {
   internal        = true
   security_groups = concat([aws_security_group.rabbitmq_elb.id], var.elb_additional_security_group_ids)
 
-  tags = {
-    Name = local.cluster_name
+  #cross_zone_load_balancing = true
+
+  tags = merge(var.tags, { Name = "${var.name}-elb" })
+}
+
+data "aws_elb_service_account" "default" {
+}
+
+data "aws_iam_policy_document" "logs_policy_doc" {
+  statement {
+    sid       = "Allow ALB to write logs"
+    actions   = ["s3:PutObject"]
+    resources = ["arn:aws:s3:::${local.log_bucket_name}/*"]
+    principals {
+      type        = "AWS"
+      identifiers = [join("", data.aws_elb_service_account.default.*.arn)]
+    }
   }
+}
+
+module "log" {
+  source  = "terraform-aws-modules/s3-bucket/aws"
+  version = "~> 1.0"
+
+  count         = var.enable_s3_logs ? 1 : 0
+  bucket        = local.log_bucket_name
+  acl           = "private"
+  force_destroy = true
+
+  lifecycle_rule = [
+    {
+      id      = "log"
+      enabled = true
+      prefix  = "log/"
+
+      tags = {
+        rule      = "log"
+        autoclean = "true"
+      }
+
+      transition = [
+        {
+          days          = 90
+          storage_class = "ONEZONE_IA"
+        }, {
+          days          = 120
+          storage_class = "GLACIER"
+        }
+      ]
+
+      expiration = {
+        days = 730 # 2 YEARS
+      }
+    },
+  ]
+
+  policy = data.aws_iam_policy_document.logs_policy_doc.json
+
+  tags = var.tags
 }

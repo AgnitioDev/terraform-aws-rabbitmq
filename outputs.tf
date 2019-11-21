@@ -17,3 +17,7 @@ output "secret_cookie" {
   sensitive = true
 }
 
+output "elb_id" {
+  value = aws_elb.elb.id
+}
+
