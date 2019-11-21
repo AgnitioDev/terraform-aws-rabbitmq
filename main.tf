@@ -187,7 +187,7 @@ resource "aws_autoscaling_group" "rabbitmq" {
     aws_elb.elb.name]
   vpc_zone_identifier = var.subnet_ids
 
-  tag = {
+  tag {
     key = "Name",
     value = "${var.name}-asg",
     propagate_at_launch = true
