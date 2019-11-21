@@ -187,8 +187,8 @@ resource "aws_autoscaling_group" "rabbitmq" {
     aws_elb.elb.name]
   vpc_zone_identifier = var.subnet_ids
 
-  tags = merge(var.tags, {})
-/*    Name = "${var.name}-asg"
+/*  tags = merge(var.tags, {})
+    Name = "${var.name}-asg"
   })*/
 }
 
