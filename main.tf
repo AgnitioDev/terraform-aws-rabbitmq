@@ -262,14 +262,13 @@ data "aws_iam_policy_document" "logs_policy_doc" {
   }
 }
 
-module "log" {
-  source = "terraform-aws-modules/s3-bucket/aws"
-  version = "~> 1.0"
-
-  create_bucket = var.enable_s3_logs
+resource "aws_s3_bucket" "log" {
   bucket = local.log_bucket_name
-  acl = "private"
+  acl    = "private"
+  policy = data.aws_iam_policy_document.logs_policy_doc.json
   force_destroy = true
+
+  count = var.enable_s3_logs == "true" ? 1: 0
 
   lifecycle_rule = [
     {
@@ -297,10 +296,8 @@ module "log" {
         days = 730
         # 2 YEARS
       }
-    },
+    }
   ]
-
-  policy = data.aws_iam_policy_document.logs_policy_doc.json
 
   tags = var.tags
 }
