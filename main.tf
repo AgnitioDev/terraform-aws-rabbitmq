@@ -189,15 +189,11 @@ resource "aws_autoscaling_group" "asg" {
     aws_elb.elb.name]
   vpc_zone_identifier = var.subnet_ids
 
-  /*tag {
+  tag {
     key = "Name"
     value = local.asg_name
     propagate_at_launch = true
-  }*/
-
-  tags = merge(var.tags, {
-    Name = "${local.asg_name}"
-  })
+  }
 }
 
 resource "aws_elb" "elb" {
