@@ -74,6 +74,10 @@ variable "enable_deletion_protection" {
   default = "false"
 }
 
+variable "internal_elb" {
+  default = "true"
+}
+
 variable "tags" {
   type = map
 }
