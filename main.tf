@@ -106,46 +106,50 @@ resource "aws_security_group" "rabbitmq_elb" {
   }
 
   tags = merge(var.tags, {
-    Name = "${var.name}-elb" } )
+    "Name" = "${var.name}-elb" } )
 }
 
 resource "aws_security_group" "rabbitmq_nodes" {
-  name        = "${var.name}-sg-nodes"
-  vpc_id      = var.vpc_id
+  name = "${var.name}-sg-nodes"
+  vpc_id = var.vpc_id
   description = "Security Group for the rabbitmq nodes"
 
   ingress {
-    protocol  = -1
+    protocol = -1
     from_port = 0
-    to_port   = 0
-    self      = true
+    to_port = 0
+    self = true
   }
 
   ingress {
-    protocol        = "tcp"
-    from_port       = 5672
-    to_port         = 5672
-    security_groups = [aws_security_group.rabbitmq_elb.id]
+    protocol = "tcp"
+    from_port = 5672
+    to_port = 5672
+    security_groups = [
+      aws_security_group.rabbitmq_elb.id]
   }
 
   ingress {
-    protocol        = "tcp"
-    from_port       = 15672
-    to_port         = 15672
-    security_groups = [aws_security_group.rabbitmq_elb.id]
+    protocol = "tcp"
+    from_port = 15672
+    to_port = 15672
+    security_groups = [
+      aws_security_group.rabbitmq_elb.id]
   }
 
   egress {
-    protocol  = "-1"
+    protocol = "-1"
     from_port = 0
-    to_port   = 0
+    to_port = 0
 
     cidr_blocks = [
       "0.0.0.0/0",
     ]
   }
 
-  tags = merge(var.tags, { Name = "${var.name}-sg-nodes" })
+  tags = merge(var.tags, {
+    "Name" = "${var.name}-sg-nodes"
+  })
 }
 
 resource "aws_launch_configuration" "rabbitmq" {
@@ -170,35 +174,39 @@ resource "aws_launch_configuration" "rabbitmq" {
 }
 
 resource "aws_autoscaling_group" "rabbitmq" {
-  name                      = "${var.name}-asg"
-  min_size                  = var.min_size
-  desired_capacity          = var.desired_size
-  max_size                  = var.max_size
+  name = "${var.name}-asg"
+  min_size = var.min_size
+  desired_capacity = var.desired_size
+  max_size = var.max_size
   health_check_grace_period = 300
-  health_check_type         = "ELB"
-  force_delete              = true
-  launch_configuration      = aws_launch_configuration.rabbitmq.name
-  load_balancers            = [aws_elb.elb.name]
-  vpc_zone_identifier       = var.subnet_ids
+  health_check_type = "ELB"
+  force_delete = true
+  launch_configuration = aws_launch_configuration.rabbitmq.name
+  load_balancers = [
+    aws_elb.elb.name]
+  vpc_zone_identifier = var.subnet_ids
 
-  tags = merge(var.tags, { Name = "${var.name}-asg", propagate_at_launch = "true" })
+  tags = merge(var.tags, {
+    "Name" = "${var.name}-asg",
+    "propagate_at_launch" = "true"
+  })
 }
 
 resource "aws_elb" "elb" {
   name = "${var.name}-elb"
 
   access_logs {
-    bucket        = local.log_bucket_name
+    bucket = local.log_bucket_name
     bucket_prefix = "elb"
-    interval      = 60
-    enabled       = var.enable_s3_logs
+    interval = 60
+    enabled = var.enable_s3_logs
   }
 
   listener {
-    instance_port     = local.rabbit_internal_port
+    instance_port = local.rabbit_internal_port
     instance_protocol = "tcp"
-    lb_port           = var.rabbit_port
-    lb_protocol       = "tcp"
+    lb_port = var.rabbit_port
+    lb_protocol = "tcp"
   }
 
   /*listener {
@@ -210,28 +218,31 @@ resource "aws_elb" "elb" {
   }*/
 
   listener {
-    instance_port     = 15672
+    instance_port = 15672
     instance_protocol = "http"
-    lb_port           = var.rabbit_mgtport
-    lb_protocol       = "http"
+    lb_port = var.rabbit_mgtport
+    lb_protocol = "http"
   }
 
   health_check {
-    interval            = 30
+    interval = 30
     unhealthy_threshold = 10
-    healthy_threshold   = 2
-    timeout             = 3
-    target              = "TCP:${local.rabbit_internal_port}"
+    healthy_threshold = 2
+    timeout = 3
+    target = "TCP:${local.rabbit_internal_port}"
   }
 
-  subnets         = var.subnet_ids
-  idle_timeout    = 3600
-  internal        = var.internal_elb
-  security_groups = concat([aws_security_group.rabbitmq_elb.id], var.elb_additional_security_group_ids)
+  subnets = var.subnet_ids
+  idle_timeout = 3600
+  internal = var.internal_elb
+  security_groups = concat([
+    aws_security_group.rabbitmq_elb.id], var.elb_additional_security_group_ids)
 
   #cross_zone_load_balancing = true
 
-  tags = merge(var.tags, { Name = "${var.name}-elb" })
+  tags = merge(var.tags, {
+    "Name" = "${var.name}-elb"
+  })
 }
 
 data "aws_elb_service_account" "default" {
@@ -257,7 +268,6 @@ module "log" {
   bucket = local.log_bucket_name
   acl = "private"
   force_destroy = true
-  attach_elb_log_delivery_policy = true
 
   lifecycle_rule = [
     {
