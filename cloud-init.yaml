@@ -62,6 +62,17 @@ write_files:
         docker exec rabbitmq rabbitmqctl set_permissions -p / admin ".*" ".*" ".*"
         docker exec rabbitmq rabbitmqctl set_permissions -p / rabbit ".*" ".*" ".*"
         docker exec rabbitmq rabbitmqctl delete_user guest
+ - path: /root/rename.sh
+   content:
+     content: |
+       #!/usr/bin/env bash
+       export AWS_DEFAULT_REGION='${region}'
+
+       IDS=$(aws ec2 describe-instances --filters "Name=tag:aws:autoscaling:groupName,Values=${asg_name}" "Name=instance-state-name,Values=running" | jq ".Reservations[].Instances[].InstanceId" | xargs)
+       for id in $IDS; do
+         NEW_NAME=${node_name}-${ID}
+         aws ec2 create-tags --resources ${ID} --tags Key=Name,Value=$NEW_NAME
+       done
 
 runcmd:
   - yum update -y
@@ -74,3 +85,5 @@ runcmd:
   - docker exec rabbitmq bash /tmp/bin/join_cluster.sh $(bash /root/find_hosts.sh)
   - sleep 1
   - bash /root/configure.sh
+  - sleep 1
+  - bash/root/rename.sh

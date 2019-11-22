@@ -57,6 +57,7 @@ data "template_file" "cloud-init" {
     rabbit_password = random_string.rabbit_password.result
     secret_cookie   = random_string.secret_cookie.result
     message_timeout = 3 * 24 * 60 * 60 * 1000 # 3 days
+    node_name       = "${var.name}-node"
   }
 }
 
