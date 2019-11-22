@@ -78,7 +78,8 @@ resource "aws_iam_role_policy" "policy" {
             "Effect": "Allow",
             "Action": [
                 "autoscaling:DescribeAutoScalingInstances",
-                "ec2:DescribeInstances"
+                "ec2:DescribeInstances",
+                "ec2:CreateTags"
             ],
             "Resource": [
                 "*"
