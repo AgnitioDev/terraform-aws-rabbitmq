@@ -1,8 +1,8 @@
 variable "vpc_id" {
 }
 
-variable "ssh_key_name" {
-}
+/*variable "ssh_key_name" {
+}*/
 
 variable "name" {
   default = "main"
