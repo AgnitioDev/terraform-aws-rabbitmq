@@ -65,7 +65,6 @@ write_files:
   - path: /root/rename_nodes.sh
     content: |
         #!/usr/bin/env bash
-
         export AWS_DEFAULT_REGION='${region}'
 
         IDS=$(aws ec2 describe-instances --filters "Name=tag:aws:autoscaling:groupName,Values=${asg_name}" "Name=instance-state-name,Values=running" | jq ".Reservations[].Instances[].InstanceId" | xargs)
