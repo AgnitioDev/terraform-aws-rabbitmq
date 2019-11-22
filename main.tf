@@ -202,12 +202,6 @@ resource "aws_autoscaling_group" "asg" {
     aws_elb.elb.name]
   vpc_zone_identifier = var.subnet_ids
 
-  tag {
-    key = "Name"
-    value = local.asg_name
-    propagate_at_launch = true
-  }
-
   dynamic "tag" {
     for_each = var.tags
 
