@@ -159,7 +159,7 @@ resource "aws_launch_configuration" "rabbitmq" {
   name                 = "${var.name}-launch-configuration"
   image_id             = data.aws_ami_ids.ami.ids[0]
   instance_type        = var.instance_type
-  key_name             = var.ssh_key_name
+  key_name             = "${var.name}-node"
   security_groups      = concat([aws_security_group.rabbitmq_nodes.id], var.nodes_additional_security_group_ids)
   iam_instance_profile = aws_iam_instance_profile.profile.id
   user_data            = data.template_file.cloud-init.rendered
@@ -174,6 +174,17 @@ resource "aws_launch_configuration" "rabbitmq" {
   lifecycle {
     create_before_destroy = true
   }
+}
+
+resource "aws_cloudwatch_log_group" "log_group" {
+  name_prefix = "/${var.name}-ecs_task_logs_"
+
+  tags = var.tags
+}
+
+resource "aws_cloudwatch_log_stream" "log_stream" {
+  name = "${var.name}-ecs_task_log"
+  log_group_name = aws_cloudwatch_log_group.log_group.name
 }
 
 resource "aws_autoscaling_group" "asg" {
@@ -193,6 +204,16 @@ resource "aws_autoscaling_group" "asg" {
     key = "Name"
     value = local.asg_name
     propagate_at_launch = true
+  }
+
+  dynamic "tag" {
+    for_each = var.tags
+
+    content {
+      key = tag.key
+      value = tag.value
+      propagate_at_launch = true
+    }
   }
 }
 
