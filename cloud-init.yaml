@@ -69,9 +69,9 @@ write_files:
        export AWS_DEFAULT_REGION='${region}'
 
        IDS=$(aws ec2 describe-instances --filters "Name=tag:aws:autoscaling:groupName,Values=${asg_name}" "Name=instance-state-name,Values=running" | jq ".Reservations[].Instances[].InstanceId" | xargs)
-       for id in $IDS; do
-         NEW_NAME=${node_name}-${ID}
-         aws ec2 create-tags --resources ${ID} --tags Key=Name,Value=$NEW_NAME
+       for ID in $IDS; do
+         NEW_NAME=${node_name}-$ID
+         aws ec2 create-tags --resources $ID --tags Key=Name,Value=$NEW_NAME
        done
 
 runcmd:
