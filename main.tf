@@ -55,6 +55,7 @@ data "template_file" "cloud-init" {
     region          = data.aws_region.current.name
     admin_password  = random_string.admin_password.result
     rabbit_password = random_string.rabbit_password.result
+    rabbit_username = var.rabbit_username
     secret_cookie   = random_string.secret_cookie.result
     message_timeout = 3 * 24 * 60 * 60 * 1000 # 3 days
     node_name       = "${var.name}-node"

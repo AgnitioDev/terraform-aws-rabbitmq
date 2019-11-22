@@ -12,6 +12,10 @@ output "rabbit_password" {
   sensitive = true
 }
 
+output "rabbit_username" {
+  value = var.rabbit_username
+}
+
 output "secret_cookie" {
   value     = random_string.secret_cookie.result
   sensitive = true

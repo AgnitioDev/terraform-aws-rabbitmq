@@ -64,6 +64,11 @@ variable "rabbit_port" {
   default = "5672"
 }
 
+variable "rabbit_username" {
+  description = "Username for the rabbit account"
+  default = "rabbit"
+}
+
 variable "enable_s3_logging" {
   description = "If true elb will store logs on S3"
   default = false
