@@ -62,18 +62,18 @@ write_files:
         docker exec rabbitmq rabbitmqctl set_permissions -p / admin ".*" ".*" ".*"
         docker exec rabbitmq rabbitmqctl set_permissions -p / rabbit ".*" ".*" ".*"
         docker exec rabbitmq rabbitmqctl delete_user guest
- - path: /root/rename.sh
-   content:
-     content: |
-       #!/usr/bin/env bash
-       export AWS_DEFAULT_REGION='${region}'
+  - path: /root/rename_nodes.sh
+    content: |
+        #!/usr/bin/env bash
 
-       IDS=$(aws ec2 describe-instances --filters "Name=tag:aws:autoscaling:groupName,Values=${asg_name}" "Name=instance-state-name,Values=running" | jq ".Reservations[].Instances[].InstanceId" | xargs)
-       for ID in $IDS; do
-         NEW_NAME=${node_name}-$ID
-         aws ec2 create-tags --resources $ID --tags Key=Name,Value=$NEW_NAME
-       done
+        export AWS_DEFAULT_REGION='${region}'
 
+        IDS=$(aws ec2 describe-instances --profile dev --filters "Name=tag:aws:autoscaling:groupName,Values=rabbitmq-asg" "Name=instance-state-name,Values=running" | jq ".Reservations[].Instances[].InstanceId" | xargs)
+
+        for ID in $IDS; do
+          NEW_NAME=rabbitmq-node-$ID
+          aws ec2 create-tags --resources $ID --tags Key=Name,Value=$NEW_NAME
+        done
 runcmd:
   - yum update -y
   - yum install -y docker jq
@@ -86,4 +86,4 @@ runcmd:
   - sleep 1
   - bash /root/configure.sh
   - sleep 1
-  - bash /root/rename.sh
+  - bash /root/rename_nodes.sh
