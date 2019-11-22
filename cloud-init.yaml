@@ -86,4 +86,4 @@ runcmd:
   - sleep 1
   - bash /root/configure.sh
   - sleep 1
-  - bash/root/rename.sh
+  - bash /root/rename.sh
