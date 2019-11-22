@@ -159,7 +159,7 @@ resource "aws_launch_configuration" "rabbitmq" {
   name                 = "${var.name}-launch-configuration"
   image_id             = data.aws_ami_ids.ami.ids[0]
   instance_type        = var.instance_type
-  key_name             = "${var.name}-node"
+  key_name             = var.ssh_key_name.name
   security_groups      = concat([aws_security_group.rabbitmq_nodes.id], var.nodes_additional_security_group_ids)
   iam_instance_profile = aws_iam_instance_profile.profile.id
   user_data            = data.template_file.cloud-init.rendered
